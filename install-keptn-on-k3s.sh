@@ -250,7 +250,8 @@ function get_fqdn {
 
 function apply_manifest {
   if [[ -n $1 ]]; then
-    if "${K3SKUBECTL[@]}" apply -f "${1}"; then
+    "${K3SKUBECTL[@]}" apply -f "${1}"
+    if [[ $? != 0 ]]; then
       echo "Error applying manifest $1"
       exit 1
     fi
@@ -259,7 +260,8 @@ function apply_manifest {
 
 function apply_manifest_ns_keptn {
   if [[ -n $1 ]]; then
-    if "${K3SKUBECTL[@]}" apply -n keptn -f "${1}"; then
+    "${K3SKUBECTL[@]}" apply -n keptn -f "${1}"
+    if [[ $? != 0 ]]; then
       echo "Error applying manifest $1"
       exit 1
     fi
