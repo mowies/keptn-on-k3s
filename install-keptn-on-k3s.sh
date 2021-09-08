@@ -2,8 +2,6 @@
 
 set -eu
 
-echo "start of script"
-
 # Keptn Version Information
 KEPTNVERSION=${KEPTNVERSION:-0.8.6}
 KEPTN_TYPE="controlplane"
@@ -79,14 +77,10 @@ GITEA_VERSION="v2.2.0"
 
 DEMO="false"
 
-echo "variable setup in progress"
-
 # Keptn Credentials
 KEPTN_API_TOKEN="$(head -c 16 /dev/urandom | base64)"
 # shellcheck disable=SC2002
 BRIDGE_PASSWORD="$(head -c 512 /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)"
-
-echo "bridge password done"
 
 # k8s config
 K3SVERSION="v1.19"
@@ -1422,5 +1416,4 @@ function main {
 
 }
 
-echo "running setup k3s script now..."
 main "${@}"
