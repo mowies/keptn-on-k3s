@@ -741,10 +741,7 @@ function install_keptncli {
   curl -k "http://$KEPTN_DOMAIN/api"
   curl -k "http://$KEPTN_DOMAIN/"
 
-  "${K3SKUBECTL[@]}" get ingress -oyaml -n keptn
   "${K3SKUBECTL[@]}" get ingress -oyaml -n keptn keptn-ingress
-
-  "${K3SKUBECTL[@]}" get svc -oyaml -n keptn
   "${K3SKUBECTL[@]}" get svc -oyaml -n keptn api-gateway-nginx
 
   keptn auth --api-token "${KEPTN_API_TOKEN}" --endpoint "http://$KEPTN_DOMAIN/api"
