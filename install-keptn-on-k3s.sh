@@ -1417,4 +1417,5 @@ function main {
 
 }
 
+echo "running setup k3s script now..."
 main "${@}"
