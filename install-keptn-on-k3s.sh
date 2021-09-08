@@ -1151,9 +1151,7 @@ EOF
 }
 
 function main {
-  echo "Function main..."
   while true; do
-  echo "in while loop"
   case "${1:-default}" in
     --type)
         INSTALL_TYPE="${2}"
