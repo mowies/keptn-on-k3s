@@ -77,6 +77,7 @@ GITEA_VERSION="v2.2.0"
 
 DEMO="false"
 
+
 # Keptn Credentials
 KEPTN_API_TOKEN="$(head -c 16 /dev/urandom | base64)"
 BRIDGE_PASSWORD="$(head -c 256 /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)"
@@ -167,9 +168,8 @@ function check_delete_secret {
 
 function get_keptn_token {
 
-  if [[ "${KEPTN_CONTROL_PLANE_API_TOKEN}" == "none" ]]; then 
-    # shellcheck disable=SC2068
-    ${K3SKUBECTL[@]} get secret keptn-api-token -n keptn -o jsonpath="{.data.keptn-api-token}" | base64 -d
+  if [[ "${KEPTN_CONTROL_PLANE_API_TOKEN}" == "none" ]]; then
+    echo "$(${K3SKUBECTL[@]} get secret keptn-api-token -n keptn -o jsonpath="{.data.keptn-api-token}" | base64 -d)"
   else
     echo "${KEPTN_CONTROL_PLANE_API_TOKEN}"
   fi
@@ -399,8 +399,8 @@ function check_k8s {
 }
 
 function disable_bridge_auth {
-  "${K3SKUBECTL[@]}" -n keptn delete secret bridge-credentials
-  "${K3SKUBECTL[@]}" -n keptn delete pods --selector=app.kubernetes.io/name=bridge
+  ${K3SKUBECTL[@]} -n keptn delete secret bridge-credentials
+  ${K3SKUBECTL[@]} -n keptn delete pods --selector=app.kubernetes.io/name=bridge
 }
 
 function install_certmanager {
