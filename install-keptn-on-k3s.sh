@@ -80,6 +80,7 @@ DEMO="false"
 
 # Keptn Credentials
 KEPTN_API_TOKEN="$(head -c 16 /dev/urandom | base64)"
+# shellcheck disable=SC2002
 BRIDGE_PASSWORD="$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)"
 
 # k8s config
@@ -169,7 +170,8 @@ function check_delete_secret {
 function get_keptn_token {
 
   if [[ "${KEPTN_CONTROL_PLANE_API_TOKEN}" == "none" ]]; then 
-    echo "$(${K3SKUBECTL[@]} get secret keptn-api-token -n keptn -o jsonpath={.data.keptn-api-token} | base64 -d)"
+    # shellcheck disable=SC2068
+    ${K3SKUBECTL[@]} get secret keptn-api-token -n keptn -o jsonpath="{.data.keptn-api-token}" | base64 -d
   else
     echo "${KEPTN_CONTROL_PLANE_API_TOKEN}"
   fi
@@ -240,18 +242,17 @@ function get_fqdn {
 
   KEPTN_DOMAIN="keptn.${FQDN}"
 
-  # if GIT_DOMAIN wasnt set and we will install GITEA lets create the domain name
+  # if GIT_DOMAIN wasn't set and we will install GITEA lets create the domain name
   if [[ "${GIT_DOMAIN}" == "none" ]] && [[ "${GITEA}" == "true" ]]; then
     GIT_DOMAIN="git.${FQDN}"
-    # always acceses git via http as we otherwise may have problem with self-signed certificate!
+    # always accesses git via http as we otherwise may have problem with self-signed certificate!
     GIT_SERVER="http://$GIT_DOMAIN"
   fi
 }
 
 function apply_manifest {
-  if [[ ! -z $1 ]]; then
-    "${K3SKUBECTL[@]}" apply -f "${1}"
-    if [[ $? != 0 ]]; then
+  if [[ -n $1 ]]; then
+    if "${K3SKUBECTL[@]}" apply -f "${1}"; then
       echo "Error applying manifest $1"
       exit 1
     fi
@@ -259,9 +260,8 @@ function apply_manifest {
 }
 
 function apply_manifest_ns_keptn {
-  if [[ ! -z $1 ]]; then
-    "${K3SKUBECTL[@]}" apply -n keptn -f "${1}"
-    if [[ $? != 0 ]]; then
+  if [[ -n $1 ]]; then
+    if "${K3SKUBECTL[@]}" apply -n keptn -f "${1}"; then
       echo "Error applying manifest $1"
       exit 1
     fi
@@ -378,10 +378,10 @@ function get_istio {
 
   # Create ConfigMap Entry for keptn's helm service
   "${K3SKUBECTL[@]}" create configmap -n keptn ingress-config \
-      --from-literal=ingress_hostname_suffix=${FQDN} \
-      --from-literal=ingress_port=${INGRESS_PORT} \
-      --from-literal=ingress_protocol=${INGRESS_PROTOCOL} \
-      --from-literal=istio_gateway=${ISTIO_GATEWAY} \
+      --from-literal=ingress_hostname_suffix="${FQDN}" \
+      --from-literal=ingress_port="${INGRESS_PORT}" \
+      --from-literal=ingress_protocol="${INGRESS_PROTOCOL}" \
+      --from-literal=istio_gateway="${ISTIO_GATEWAY}" \
       -oyaml --dry-run | kubectl replace -f -
 }
 
@@ -399,8 +399,8 @@ function check_k8s {
 }
 
 function disable_bridge_auth {
-  ${K3SKUBECTL[@]} -n keptn delete secret bridge-credentials
-  ${K3SKUBECTL[@]} -n keptn delete pods --selector=app.kubernetes.io/name=bridge
+  "${K3SKUBECTL[@]}" -n keptn delete secret bridge-credentials
+  "${K3SKUBECTL[@]}" -n keptn delete pods --selector=app.kubernetes.io/name=bridge
 }
 
 function install_certmanager {
@@ -502,13 +502,13 @@ function install_keptn {
     # no need to additionally install jmeter as we install a delivery plane anyway!
     JMETER="false"
 
-    # need to install Istio for Delivery Plane as we are potentially depoying sevices blue / green
+    # need to install Istio for Delivery Plane as we are potentially deploying services blue / green
     get_istio
     get_argorollouts
 
     # Since Keptn 0.8.2 the Helm Service and JMeter Service are no longer installed through the Keptn Helm Chart. so - installing them now
-    helm install jmeter-service https://github.com/keptn/keptn/releases/download/${KEPTNVERSION}/jmeter-service-${KEPTNVERSION}.tgz -n keptn
-    helm install helm-service https://github.com/keptn/keptn/releases/download/${KEPTNVERSION}/helm-service-${KEPTNVERSION}.tgz -n keptn
+    helm install jmeter-service "https://github.com/keptn/keptn/releases/download/${KEPTNVERSION}/jmeter-service-${KEPTNVERSION}.tgz" -n keptn
+    helm install helm-service "https://github.com/keptn/keptn/releases/download/${KEPTNVERSION}/helm-service-${KEPTNVERSION}.tgz" -n keptn
 
     # Install the Argo Service as this is needed for one of the demo use cases
     apply_manifest_ns_keptn "https://raw.githubusercontent.com/keptn-contrib/argo-service/${ARGO_SERVICE_VERSION}/deploy/service.yaml"
@@ -529,7 +529,7 @@ function install_keptn {
     get_argorollouts
 
     # Install the Helm Service
-    curl -fsSL -o /tmp/helm.values.yaml https://raw.githubusercontent.com/keptn/keptn/release-${KEPTNVERSION}/helm-service/chart/values.yaml
+    curl -fsSL -o /tmp/helm.values.yaml "https://raw.githubusercontent.com/keptn/keptn/release-${KEPTNVERSION}/helm-service/chart/values.yaml"
     yq w -i /tmp/helm.values.yaml "remoteControlPlane.enabled" "true"
     yq w -i /tmp/helm.values.yaml "remoteControlPlane.api.hostname" "${KEPTN_CONTROL_PLANE_DOMAIN}"
     yq w -i /tmp/helm.values.yaml "remoteControlPlane.api.token" "${KEPTN_CONTROL_PLANE_API_TOKEN}"
@@ -538,7 +538,7 @@ function install_keptn {
     yq w -i /tmp/helm.values.yaml "distributor.serviceFilter" "${KEPTN_EXECUTION_PLANE_SERVICE_FILTER}"
     yq w -i /tmp/helm.values.yaml "remoteControlPlane.api.apiValidateTls" "${KEPTN_CONTROL_PLANE_SSL_VERIFY}"
     
-    helm install helm-service https://github.com/keptn/keptn/releases/download/${KEPTNVERSION}/helm-service-${KEPTNVERSION}.tgz -n keptn --create-namespace --values=/tmp/helm.values.yaml
+    helm install helm-service "https://github.com/keptn/keptn/releases/download/${KEPTNVERSION}/helm-service-${KEPTNVERSION}.tgz" -n keptn --create-namespace --values=/tmp/helm.values.yaml
 
     # Install the Argo Service for just the demo-rollout project
     apply_manifest_ns_keptn "https://raw.githubusercontent.com/keptn-contrib/argo-service/${ARGO_SERVICE_VERSION}/deploy/service.yaml"
@@ -548,7 +548,7 @@ function install_keptn {
 
     # Install JMeter if the user wants to
     if [[ "${JMETER}" == "true" ]]; then
-      curl -fsSL -o /tmp/jmeter.values.yaml https://raw.githubusercontent.com/keptn/keptn/release-${KEPTNVERSION}/jmeter-service/chart/values.yaml
+      curl -fsSL -o /tmp/jmeter.values.yaml "https://raw.githubusercontent.com/keptn/keptn/release-${KEPTNVERSION}/jmeter-service/chart/values.yaml"
       yq w -i /tmp/jmeter.values.yaml "remoteControlPlane.enabled" "true"
       yq w -i /tmp/jmeter.values.yaml "remoteControlPlane.api.hostname" "${KEPTN_CONTROL_PLANE_DOMAIN}"
       yq w -i /tmp/jmeter.values.yaml "remoteControlPlane.api.token" "${KEPTN_CONTROL_PLANE_API_TOKEN}"
@@ -557,7 +557,7 @@ function install_keptn {
       yq w -i /tmp/jmeter.values.yaml "distributor.serviceFilter" "${KEPTN_EXECUTION_PLANE_SERVICE_FILTER}"
       yq w -i /tmp/jmeter.values.yaml "remoteControlPlane.api.apiValidateTls" "${KEPTN_CONTROL_PLANE_SSL_VERIFY}"
 
-      helm install jmeter-service https://github.com/keptn/keptn/releases/download/${KEPTNVERSION}/jmeter-service-${KEPTNVERSION}.tgz -n keptn --create-namespace --values=/tmp/jmeter.values.yaml
+      helm install jmeter-service "https://github.com/keptn/keptn/releases/download/${KEPTNVERSION}/jmeter-service-${KEPTNVERSION}.tgz" -n keptn --create-namespace --values=/tmp/jmeter.values.yaml
 
       # no need to additionally install jmeter afterwards as we install it as part of the execution plane anyway!
       JMETER="false"
@@ -681,7 +681,7 @@ function install_keptn {
   # Installing JMeter Service on the control plane if requested!
   if [[ "${JMETER}" == "true" ]]; then
     write_progress "Installing JMeter Service"
-    helm install jmeter-service https://github.com/keptn/keptn/releases/download/${KEPTNVERSION}/jmeter-service-${KEPTNVERSION}.tgz -n keptn --create-namespace
+    helm install jmeter-service "https://github.com/keptn/keptn/releases/download/${KEPTNVERSION}/jmeter-service-${KEPTNVERSION}.tgz" -n keptn --create-namespace
   fi
 
   if [[ "${DISABLE_BRIDGE_AUTH}" == "true" ]]; then
@@ -750,7 +750,7 @@ function install_keptncli {
 # Create Token
 gitea_createApiToken(){
     echo "Creating token for $GIT_USER from $GIT_SERVER"
-    curl -vkL --user $GIT_USER:$GIT_PASSWORD \
+    curl -vkL --user "$GIT_USER:$GIT_PASSWORD" \
     -X POST "$GIT_SERVER/api/v1/users/$GIT_USER/tokens" \
     -H "accept: application/json" -H "Content-Type: application/json; charset=utf-8" \
     -d "{ \"name\": \"$GIT_TOKEN\" }" -o $TOKEN_FILE
@@ -758,14 +758,14 @@ gitea_createApiToken(){
 
 gitea_getApiTokens(){
     echo "Get tokens for $GIT_USER from $GIT_SERVER"
-    curl -vkL --user $GIT_USER:$GIT_PASSWORD \
+    curl -vkL --user "$GIT_USER:$GIT_PASSWORD" \
     -X GET "$GIT_SERVER/api/v1/users/$GIT_USER/tokens" \
     -H "accept: application/json" -H "Content-Type: application/json; charset=utf-8"
 }
 
 gitea_deleteApiToken(){
     echo "Deleting token for $GIT_USER from $GIT_SERVER"
-    curl -vkL --user $GIT_USER:$GIT_PASSWORD \
+    curl -vkL --user "$GIT_USER:$GIT_PASSWORD" \
     -X DELETE "$GIT_SERVER/api/v1/users/$GIT_USER/tokens/$TOKEN_ID" \
     -H "accept: application/json" -H "Content-Type: application/json; charset=utf-8" 
 }
@@ -778,8 +778,8 @@ gitea_readApiTokenFromFile() {
     if [ -f "$TOKEN_FILE" ]; then
         echo "Reading token from file $TOKEN_FILE"
         TOKENJSON=$(cat $TOKEN_FILE)
-        API_TOKEN=$(echo $TOKENJSON | jq -r '.sha1')
-        TOKEN_ID=$(echo $TOKENJSON | jq -r '.id')
+        API_TOKEN=$(echo "$TOKENJSON" | jq -r '.sha1')
+        TOKEN_ID=$(echo "$TOKENJSON" | jq -r '.id')
         echo "tokenId: $TOKEN_ID hash: $API_TOKEN"
     else 
         echo "Cant get Git Token!"
@@ -788,26 +788,26 @@ gitea_readApiTokenFromFile() {
 
 gitea_createKeptnRepos() {
     echo "Creating repositories for Keptn projects "
-    for project in `keptn get projects | awk '{ if (NR!=1) print $1}'`;
+    for project in $(keptn get projects | awk '{ if (NR!=1) print $1}');
     do 
-        gitea_createKeptnRepo $project || true
+        gitea_createKeptnRepo "$project" || true
     done
 }
 
 gitea_updateKeptnRepo(){
     KEPTN_PROJECT=$1
-    keptn update project $KEPTN_PROJECT --git-user=$GIT_USER --git-token=$API_TOKEN --git-remote-url=$GIT_SERVER/$GIT_USER/$KEPTN_PROJECT.git
+    keptn update project "$KEPTN_PROJECT" --git-user="$GIT_USER" --git-token="$API_TOKEN" --git-remote-url="$GIT_SERVER/$GIT_USER/$KEPTN_PROJECT.git"
 }
 
 gitea_createKeptnRepoManually(){
     gitea_readApiTokenFromFile
-    gitea_createKeptnRepo $1
+    gitea_createKeptnRepo "$1"
 }
 
 gitea_createKeptnRepo(){
     echo "Creating and migrating Keptn project to self-hosted git for $1"
-    gitea_createGitRepo $1
-    gitea_updateKeptnRepo $1
+    gitea_createGitRepo "$1"
+    gitea_updateKeptnRepo "$1"
 }
 
 gitea_createGitRepo(){
@@ -845,7 +845,7 @@ function check_dynatrace_credentials {
   status=$(curl --request GET \
         --url "https://$DT_TENANT/api/v1/config/clusterversion" \
         --header "Authorization: Api-Token $DT_API_TOKEN" \
-        --write-out %{http_code} --silent --output /dev/null)
+        --write-out "%{http_code}" --silent --output /dev/null)
   if [[ $status != 200 ]]; then
     echo "Couldnt connect to the Dynatrace API with provided DT_TENANT & DT_API_TOKEN"
     echo "Please double check the URL to not include leading https:// and double check your API_TOKEN priviliges"
@@ -860,8 +860,8 @@ function check_dynatrace_credentials {
 # 2. scope (optional). Default is keptn-default
 #
 function keptn_create_dynatrace_secret {
-  secret_name="${1:-dynatrace}"
-  scope="${2:-keptn-default}"
+  secret_name="dynatrace"
+  scope="keptn-default"
 
   get_keptncredentials
 
@@ -883,7 +883,7 @@ function install_demo_dynatrace {
   export KEPTN_INGRESS=${FQDN}
   echo "----------------------------------------------"
   echo "Create Keptn Project: ${KEPTN_QG_PROJECT}"
-  ./create-keptn-project-from-template.sh quality-gate-dynatrace ${OWNER_EMAIL} ${KEPTN_QG_PROJECT}
+  ./create-keptn-project-from-template.sh quality-gate-dynatrace "${OWNER_EMAIL}" "${KEPTN_QG_PROJECT}"
 
   echo "Run first Dynatrace Quality Gate"
   keptn trigger evaluation --project="${KEPTN_QG_PROJECT}" --stage="${KEPTN_QG_STAGE}" --service="${KEPTN_QG_SERVICE}" --timeframe=30m
@@ -896,7 +896,7 @@ function install_demo_dynatrace {
   # ==============================================================================================
   echo "----------------------------------------------"
   echo "Create Keptn Project: ${KEPTN_PERFORMANCE_PROJECT}"
-  ./create-keptn-project-from-template.sh performance-as-selfservice ${OWNER_EMAIL} ${KEPTN_PERFORMANCE_PROJECT}
+  ./create-keptn-project-from-template.sh performance-as-selfservice "${OWNER_EMAIL}" "${KEPTN_PERFORMANCE_PROJECT}"
 
   # ==============================================================================================
   # Demo 3: Auto-Remediation
@@ -906,7 +906,7 @@ function install_demo_dynatrace {
   # ==============================================================================================
   echo "----------------------------------------------"
   echo "Create Keptn Project: ${KEPTN_REMEDIATION_PROJECT}"
-  ./create-keptn-project-from-template.sh auto-remediation ${OWNER_EMAIL} ${KEPTN_REMEDIATION_PROJECT}
+  ./create-keptn-project-from-template.sh auto-remediation "${OWNER_EMAIL}" "${KEPTN_REMEDIATION_PROJECT}"
 
   # ==============================================================================================
   # Demo 4: Blue/Green Delivery with Istio
@@ -914,7 +914,7 @@ function install_demo_dynatrace {
   # ==============================================================================================
   echo "----------------------------------------------"
   echo "Create Keptn Project: ${KEPTN_DELIVERY_PROJECT}"
-  ./create-keptn-project-from-template.sh delivery-simplenode ${OWNER_EMAIL} ${KEPTN_DELIVERY_PROJECT}
+  ./create-keptn-project-from-template.sh delivery-simplenode "${OWNER_EMAIL}" "${KEPTN_DELIVERY_PROJECT}"
 
 
   # ==============================================================================================
@@ -923,7 +923,7 @@ function install_demo_dynatrace {
   # ==============================================================================================
   echo "----------------------------------------------"
   echo "Create Keptn Project: ${KEPTN_ROLLOUT_PROJECT}"
-  ./create-keptn-project-from-template.sh delivery-rollout ${OWNER_EMAIL} ${KEPTN_ROLLOUT_PROJECT}
+  ./create-keptn-project-from-template.sh delivery-rollout "${OWNER_EMAIL}" "${KEPTN_ROLLOUT_PROJECT}"
 
   # ==============================================================================================
   # Demo 6: Advanced Performance
@@ -931,7 +931,7 @@ function install_demo_dynatrace {
   # ==============================================================================================
   echo "----------------------------------------------"
   echo "Create Keptn Project: ${KEPTN_ADV_PERFORMANCE_PROJECT}"
-  ./create-keptn-project-from-template.sh advanced-performance ${OWNER_EMAIL} ${KEPTN_ADV_PERFORMANCE_PROJECT}
+  ./create-keptn-project-from-template.sh advanced-performance "${OWNER_EMAIL}" "${KEPTN_ADV_PERFORMANCE_PROJECT}"
 
   # ==============================================================================================
   # Demo 7: Generic Automation
@@ -939,7 +939,7 @@ function install_demo_dynatrace {
   # ==============================================================================================
   echo "----------------------------------------------"
   echo "Create Keptn Project: ${KEPTN_GENERIC_AUTOMATION_PROJECT}"
-  ./create-keptn-project-from-template.sh generic-automation ${OWNER_EMAIL} ${KEPTN_GENERIC_AUTOMATION_PROJECT}
+  ./create-keptn-project-from-template.sh generic-automation "${OWNER_EMAIL}" "${KEPTN_GENERIC_AUTOMATION_PROJECT}"
 
   # ==============================================================================================
   # Demo 8: Two Stage Delivery
@@ -947,7 +947,7 @@ function install_demo_dynatrace {
   # ==============================================================================================
   echo "----------------------------------------------"
   echo "Create Keptn Project: ${KEPTN_TWOSTAGE_DELIVERY_PROJECT}"
-  ./create-keptn-project-from-template.sh two-stage-delivery-simplenode ${OWNER_EMAIL} ${KEPTN_TWOSTAGE_DELIVERY_PROJECT}
+  ./create-keptn-project-from-template.sh two-stage-delivery-simplenode "${OWNER_EMAIL}" "${KEPTN_TWOSTAGE_DELIVERY_PROJECT}"
 
 }
 
@@ -970,7 +970,7 @@ function install_prometheus_qg_demo {
   export KEPTN_INGRESS=${FQDN}
   echo "----------------------------------------------"
   echo "Create Keptn Project: ${KEPTN_PROMETHEUS_QG_PROJECT}"
-  ./create-keptn-project-from-template.sh prometheus-qg ${CERT_EMAIL} ${KEPTN_PROMETHEUS_QG_PROJECT}
+  ./create-keptn-project-from-template.sh prometheus-qg "${CERT_EMAIL}" "${KEPTN_PROMETHEUS_QG_PROJECT}"
 
   "${K3SKUBECTL[@]}" create secret -n keptn generic "prometheus-credentials-${KEPTN_PROMETHEUS_QG_PROJECT}" --from-file=prometheus-credentials="${TEMPLATE_DIRECTORY}/${KEPTN_PROMETHEUS_QG_PROJECT}/sli-secret.yaml"
   "${K3SKUBECTL[@]}" delete pod -n keptn --selector=run=prometheus-sli-service 
@@ -1026,8 +1026,8 @@ function install_prometheus_qg_demo {
 
 function print_config {
   write_progress "Keptn Deployment Summary"
-  BRIDGE_USERNAME="$(${K3SKUBECTL[@]} get secret bridge-credentials -n keptn -o jsonpath={.data.BASIC_AUTH_USERNAME} --ignore-not-found | base64 -d)"
-  BRIDGE_PASSWORD="$(${K3SKUBECTL[@]} get secret bridge-credentials -n keptn -o jsonpath={.data.BASIC_AUTH_PASSWORD} --ignore-not-found | base64 -d)"
+  BRIDGE_USERNAME="$("${K3SKUBECTL[@]}" get secret bridge-credentials -n keptn -o jsonpath="{.data.BASIC_AUTH_USERNAME}" --ignore-not-found | base64 -d)"
+  BRIDGE_PASSWORD="$("${K3SKUBECTL[@]}" get secret bridge-credentials -n keptn -o jsonpath="{.data.BASIC_AUTH_PASSWORD}" --ignore-not-found | base64 -d)"
 
   get_keptncredentials
 
@@ -1153,7 +1153,9 @@ EOF
 }
 
 function main {
+  echo "Function main..."
   while true; do
+  echo "in while loop"
   case "${1:-default}" in
     --type)
         INSTALL_TYPE="${2}"
