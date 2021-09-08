@@ -80,7 +80,8 @@ GITEA_VERSION="v2.2.0"
 DEMO="false"
 
 echo "variable setup in progress"
-
+cat /dev/urandom
+echo "debugging done"
 
 # Keptn Credentials
 KEPTN_API_TOKEN="$(head -c 16 /dev/urandom | base64)"
