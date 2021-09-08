@@ -167,7 +167,6 @@ function check_delete_secret {
 }
 
 function get_keptn_token {
-
   if [[ "${KEPTN_CONTROL_PLANE_API_TOKEN}" == "none" ]]; then
     echo "$(${K3SKUBECTL[@]} get secret keptn-api-token -n keptn -o jsonpath="{.data.keptn-api-token}" | base64 -d)"
   else
@@ -734,11 +733,12 @@ function get_keptncredentials {
 }
 
 function install_keptncli {
-
-  echo "Installing the Keptn CLI"
+  write_progress "Installing the Keptn CLI"
   curl -sL https://get.keptn.sh | KEPTN_VERSION=${KEPTNVERSION} sudo -E bash
 
   get_keptncredentials
+  echo "keptn endpoint: ${PREFIX}://$KEPTN_DOMAIN/api"
+  kubectl describe ingress -n keptn keptn-ingress
   keptn auth  --api-token "${KEPTN_API_TOKEN}" --endpoint "${PREFIX}://$KEPTN_DOMAIN/api"
 }
 
