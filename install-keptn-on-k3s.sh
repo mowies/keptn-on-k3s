@@ -702,6 +702,9 @@ function install_keptn {
     "${K3SKUBECTL[@]}" apply -n keptn -f keptn-ingress_gen.yaml
     rm keptn-ingress_gen.yaml
 
+    kubectl get ingresses --namespace=keptn
+    kubectl get certificates --namespace=keptn
+
     write_progress "Waiting for certificates to be ready (max 5 minutes)"
     "${K3SKUBECTL[@]}" wait --namespace=keptn --for=condition=Ready certificate keptn-tls --timeout=300s
   fi 
