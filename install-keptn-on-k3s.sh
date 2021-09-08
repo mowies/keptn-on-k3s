@@ -2,6 +2,8 @@
 
 set -eu
 
+echo "start of script"
+
 # Keptn Version Information
 KEPTNVERSION=${KEPTNVERSION:-0.8.6}
 KEPTN_TYPE="controlplane"
