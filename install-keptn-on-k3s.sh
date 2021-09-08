@@ -738,9 +738,9 @@ function install_keptncli {
 
   get_keptncredentials
   echo "keptn endpoint: ${PREFIX}://$KEPTN_DOMAIN/api"
-  curl "${PREFIX}://$KEPTN_DOMAIN/api"
-  curl "${PREFIX}://$KEPTN_DOMAIN/"
-  keptn auth  --api-token "${KEPTN_API_TOKEN}" --endpoint "${PREFIX}://$KEPTN_DOMAIN/api"
+  curl -k "${PREFIX}://$KEPTN_DOMAIN/api"
+  curl -k "${PREFIX}://$KEPTN_DOMAIN/"
+  keptn auth --api-token "${KEPTN_API_TOKEN}" --endpoint "http://$KEPTN_DOMAIN/api"
 }
 
 # Following are functions based on Gitea Documentation
