@@ -398,8 +398,8 @@ function check_k8s {
 }
 
 function disable_bridge_auth {
-  ${K3SKUBECTL[@]} -n keptn delete secret bridge-credentials
-  ${K3SKUBECTL[@]} -n keptn delete pods --selector=app.kubernetes.io/name=bridge
+  "${K3SKUBECTL[@]}" -n keptn delete secret bridge-credentials
+  "${K3SKUBECTL[@]}" -n keptn delete pods --selector=app.kubernetes.io/name=bridge
 }
 
 function install_certmanager {
@@ -478,7 +478,6 @@ fi
 }
 
 function install_keptn {
-
   if [[ "${KEPTN_CONTROLPLANE}" == "true" ]]; then
     write_progress "Installing Keptn Control Plane"
     helm upgrade keptn keptn --install --wait \
@@ -737,9 +736,17 @@ function install_keptncli {
   curl -sL https://get.keptn.sh | KEPTN_VERSION=${KEPTNVERSION} sudo -E bash
 
   get_keptncredentials
+
   echo "keptn endpoint: ${PREFIX}://$KEPTN_DOMAIN/api"
-  curl -k "${PREFIX}://$KEPTN_DOMAIN/api"
-  curl -k "${PREFIX}://$KEPTN_DOMAIN/"
+  curl -k "http://$KEPTN_DOMAIN/api"
+  curl -k "http://$KEPTN_DOMAIN/"
+
+  "${K3SKUBECTL[@]}" get ingress -oyaml -n keptn
+  "${K3SKUBECTL[@]}" get ingress -oyaml -n keptn keptn-ingress
+
+  "${K3SKUBECTL[@]}" get svc -oyaml -n keptn
+  "${K3SKUBECTL[@]}" get svc -oyaml -n keptn api-gateway-nginx
+
   keptn auth --api-token "${KEPTN_API_TOKEN}" --endpoint "http://$KEPTN_DOMAIN/api"
 }
 
