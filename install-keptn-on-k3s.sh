@@ -698,12 +698,17 @@ function install_keptn {
     sed -e 's~domain.placeholder~'"$KEPTN_DOMAIN"'~' \
       -e 's~issuer.placeholder~'"$CERTS"'~' \
       ./files/keptn/keptn-ingress.yaml > keptn-ingress_gen.yaml
-    cat keptn-ingress_gen.yaml
     "${K3SKUBECTL[@]}" apply -n keptn -f keptn-ingress_gen.yaml
     rm keptn-ingress_gen.yaml
 
     kubectl get ingresses --namespace=keptn
-    kubectl get certificates --namespace=keptn
+
+    # shellcheck disable=SC2034
+    for i in {1..20}; do
+      kubectl get certificates --namespace=keptn
+    done
+
+    kubectl describe certificate -n keptn keptn-tls
 
     write_progress "Waiting for certificates to be ready (max 5 minutes)"
     "${K3SKUBECTL[@]}" wait --namespace=keptn --for=condition=Ready certificate keptn-tls --timeout=300s
