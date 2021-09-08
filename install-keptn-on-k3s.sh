@@ -79,8 +79,7 @@ DEMO="false"
 
 # Keptn Credentials
 KEPTN_API_TOKEN="$(head -c 16 /dev/urandom | base64)"
-# shellcheck disable=SC2002
-BRIDGE_PASSWORD="$(head -c 512 /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)"
+BRIDGE_PASSWORD="$(tr -dc 'a-zA-Z0-9' < /dev/urandom | fold -w 32 | head -n 1)"
 
 # k8s config
 K3SVERSION="v1.19"
